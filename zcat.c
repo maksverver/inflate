@@ -11,7 +11,7 @@ uint32 crc32, isize;
 uint32 crc_table[256];
 
 static struct Inflate infl;
-uint8 input[1024], output[1024];
+uint8 input[65536], output[65536];
 
 void init_crc_table()
 {

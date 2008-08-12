@@ -1,4 +1,4 @@
-CFLAGS=-O2
+CFLAGS=-O2 -g
 LDFLAGS=
 
 all: zcat
