@@ -4,7 +4,7 @@
 
 #define HUFF_MAX_LEN    15
 
-int init_huffman_table(struct HuffmanTable *ht, const uint8 *lengths, int lengths_size)
+int init_huffman_table(struct HuffmanTable *ht, const uint8_t *lengths, int lengths_size)
 {
     int len_count[HUFF_MAX_LEN + 1] = { };
     int next_code[HUFF_MAX_LEN + 1];
@@ -89,7 +89,7 @@ int init_huffman_table(struct HuffmanTable *ht, const uint8 *lengths, int length
     } while(0)
 
 #define OUTPUT(c) \
-    do { I->window[I->window_pos] = (uint8)c; \
+    do { I->window[I->window_pos] = (uint8_t)c; \
          while (I->out.pos >= I->out.len) \
             YIELD(INFLATE_OUTPUT); \
          I->out.buf[I->out.pos] = I->window[I->window_pos]; \
@@ -122,7 +122,7 @@ default:
             SKIP(I->word_size%8);
             GRAB(16, I->n);
             GRAB(16, I->last);
-            CHECK(I->n == I->last^0xffff);
+            CHECK(I->n == (I->last^0xffff));
 
             /* Ouput n characters */
             while (I->n-- > 0)
@@ -137,7 +137,7 @@ default:
             if (btype == 1)
             {
                 /* Load fixed Huffman tables */
-                static const uint8 fixed_litlen_lengths[288] = {
+                static const uint8_t fixed_litlen_lengths[288] = {
                     8,8,8,8,8,8,8,8,  8,8,8,8,8,8,8,8,
                     8,8,8,8,8,8,8,8,  8,8,8,8,8,8,8,8,
                     8,8,8,8,8,8,8,8,  8,8,8,8,8,8,8,8,
@@ -156,7 +156,7 @@ default:
                     9,9,9,9,9,9,9,9,  9,9,9,9,9,9,9,9,
                     7,7,7,7,7,7,7,7,  7,7,7,7,7,7,7,7,
                     7,7,7,7,7,7,7,7,  8,8,8,8,8,8,8,8 };
-                static const uint8 fixed_dist_lengths[32] = {
+                static const uint8_t fixed_dist_lengths[32] = {
                     5,5,5,5,5,5,5,5,  5,5,5,5,5,5,5,5,
                     5,5,5,5,5,5,5,5,  5,5,5,5,5,5,5,5 };
 

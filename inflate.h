@@ -2,10 +2,7 @@
 #define INFLATE_H_INCLUDED
 
 #include <stdlib.h>
-
-typedef unsigned char  uint8;
-typedef unsigned short uint16;
-typedef unsigned int   uint32;
+#include <stdint.h>
 
 /* Constants returned by inflate_run() */
 #define INFLATE_ERROR   (-1)
@@ -74,7 +71,7 @@ int inflate_run(struct Inflate *infl);
 */
 struct InflateBuffer
 {
-    uint8 *buf;
+    uint8_t *buf;
     size_t pos, len;
 };
 
@@ -88,7 +85,7 @@ struct HuffmanEntry
 /* Huffman decoding table (~64KB) */
 struct HuffmanTable
 {
-    uint32 mask;
+    uint32_t mask;
     struct HuffmanEntry e[1<<15];
 };
 
@@ -110,12 +107,12 @@ struct Inflate
 
     /* Currently cached word */
     int word_size;
-    uint32 word;
+    uint32_t word;
 
     uint window_pos;
-    uint8 window[32768];
+    uint8_t window[32768];
 
-    uint8 litlen_lengths[288], dist_lengths[32], code_lengths[19];
+    uint8_t litlen_lengths[288], dist_lengths[32], code_lengths[19];
 
     struct HuffmanTable ht1, ht2;
 };

@@ -1,4 +1,5 @@
 #include "inflate.h"
+#include "crc32.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -7,36 +8,9 @@
    Reads a deflate-compressed gzip chunks from standard input,
    and writes decompressed output to standard output. */
 
-uint32 crc32, isize;
-uint32 crc_table[256];
-
-static struct Inflate infl;
-uint8 input[65536], output[65536];
-
-void init_crc_table()
-{
-    uint32 c;
-    int n, k;
-
-    for (n = 0; n < 256; n++)
-    {
-        c = (uint32)n;
-        for (k = 0; k < 8; k++)
-        {
-            if (c & 1)
-                c = 0xedb88320L ^ (c >> 1);
-            else
-                c = c >> 1;
-        }
-        crc_table[n] = c;
-    }
-}
-
-void update_crc(const uint8 *buf, int len)
-{
-    while (len-- > 0)
-        crc32 = crc_table[(crc32 ^ *buf++)&0xff] ^ (crc32 >> 8);
-}
+uint32_t crc32, isize;
+struct Inflate infl;
+uint8_t input[65536], output[65536];
 
 void inflate()
 {
@@ -63,7 +37,7 @@ void inflate()
             /* Don't forget to write data remaining in the buffer! */
             fwrite(infl.out.buf, 1, infl.out.pos, stdout);
             isize += infl.out.pos;
-            update_crc(infl.out.buf, infl.out.pos);
+            crc32_update(&crc32, infl.out.buf, infl.out.pos);
             return;
 
         case INFLATE_INPUT:
@@ -81,7 +55,7 @@ void inflate()
             /* Output buffer is full */
             fwrite(infl.out.buf, 1, infl.out.pos, stdout);
             isize += infl.out.pos;
-            update_crc(infl.out.buf, infl.out.pos);
+            crc32_update(&crc32, infl.out.buf, infl.out.pos);
             infl.out.pos = 0;
             break;
         }
@@ -93,15 +67,15 @@ int main()
     /* The GZIP chunk header */
     struct GZIP_Header
     {
-        uint8  id1, id2, cm, flg;
-        uint32 mtime;
-        uint8  xfl, os;
+        uint8_t  id1, id2, cm, flg;
+        uint32_t mtime;
+        uint8_t  xfl, os;
     } header;
 
     /* The GZIP footer */
-    uint8 footer[8];
+    uint8_t footer[8];
 
-    init_crc_table();
+    crc32_init();
 
     while (fread(&header, 10, 1, stdin) != 0)
     {
@@ -152,10 +126,10 @@ int main()
         }
 
         /* Finally, we can start decompressing the deflate data! */
-        crc32 = 0xffffffff;
         isize = 0;
+        crc32_begin(&crc32);
         inflate();
-        crc32 ^= 0xffffffff;
+        crc32_end(&crc32);
 
         /* Read GZIP footer, taking any remaining data from the buffer */
         infl.in.len -= infl.in.pos;
@@ -174,12 +148,12 @@ int main()
         }
 
         /* Verify the integrity of the output */
-        if (crc32 != (footer[0] | footer[1]<<8 | footer[2]<<16 | footer[3]<<24))
+        if (crc32 != (uint32_t)(footer[0] | footer[1]<<8 | footer[2]<<16 | footer[3]<<24))
         {
             fprintf(stderr, "Calculaed CRC does not match stored CRC!\n");
             exit(5);
         }
-        if (isize != (footer[4] | footer[5]<<8 | footer[6]<<16 | footer[7]<<24))
+        if (isize != (uint32_t)(footer[4] | footer[5]<<8 | footer[6]<<16 | footer[7]<<24))
         {
             fprintf(stderr, "Output size does not match stored size!\n");
             exit(4);
