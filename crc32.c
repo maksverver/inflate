@@ -1,6 +1,6 @@
 #include "crc32.h"
 
-#define QUOTIENT 0xedb88320L
+#define QUOTIENT 0xedb88320u    /* IEEE 802.3 */
 
 static uint32_t crc_table[256];
 
@@ -30,8 +30,9 @@ void crc32_begin(uint32_t *crc32)
 
 void crc32_update(uint32_t *crc32, const uint8_t *buf, int len)
 {
-    while (len-- > 0)
-        *crc32 = crc_table[(*crc32 ^ *buf++)&0xff] ^ (*crc32 >> 8);
+    register uint32_t c = *crc32;
+    while (len-- > 0) c = crc_table[(c ^ *buf++)^0xff] ^ (c >> 8);
+    *crc32 = c;
 }
 
 void crc32_end(uint32_t *crc32)

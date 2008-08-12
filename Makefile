@@ -1,9 +1,9 @@
-CFLAGS=-O2 -g
+CFLAGS=-O2 -Wall -Wextra
 LDFLAGS=
 
 all: zcat
 
-zcat: inflate.o zcat.o
+zcat: inflate.o zcat.o crc32.o
 	$(CC) $(LDFLAGS) -o $@ $^
 
 clean:
