@@ -85,6 +85,12 @@ struct HuffmanEntry
     unsigned short bits : 4, value : 12;
 };
 
+/* Huffman decoding table (~64KB) */
+struct HuffmanTable
+{
+    uint32 mask;
+    struct HuffmanEntry e[1<<15];
+};
 
 /* The main Inflate structure. Takes around 160KB of space! */
 struct Inflate
@@ -111,7 +117,7 @@ struct Inflate
 
     uint8 litlen_lengths[288], dist_lengths[32], code_lengths[19];
 
-    struct HuffmanEntry ht1[1<<15], ht2[1<<15];
+    struct HuffmanTable ht1, ht2;
 };
 
 

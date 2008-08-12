@@ -3,30 +3,33 @@
 #include <string.h>
 
 #define HUFF_MAX_LEN    15
-#define HUFF_MASK       ((1<<HUFF_MAX_LEN) - 1)
 
-int init_huffman_table(struct HuffmanEntry *ht, const uint8 *lengths, int lengths_size)
+int init_huffman_table(struct HuffmanTable *ht, const uint8 *lengths, int lengths_size)
 {
     int len_count[HUFF_MAX_LEN + 1] = { };
     int next_code[HUFF_MAX_LEN + 1];
-    int n, m, x;
+    int n, m, x, len;
 
     /* Figure out code lengths */
+    len = 0;
     for (n = 0; n < lengths_size; ++n)
     {
         if (lengths[n] > HUFF_MAX_LEN)
             return -1;
+        if (lengths[n] > len)
+            len = lengths[n];
         if (lengths[n] > 0)
             ++len_count[(int)lengths[n]];
     }
+    ht->mask = (1<<len)-1;
 
     /* Figure out starting codes for lengths */
     next_code[0] = 0;
-    for (n = 1; n <= HUFF_MAX_LEN; ++n)
+    for (n = 1; n <= len; ++n)
         next_code[n] = (next_code[n - 1] + len_count[n - 1]) << 1;
 
     /* Put values in Huffman table */
-    memset(ht, 0, (1<<HUFF_MAX_LEN)*sizeof(struct HuffmanEntry));
+    memset(ht->e, 0, (1<<len)*sizeof(struct HuffmanEntry));
     for (n = 0; n < lengths_size; ++n)
     {
         if (lengths[n] == 0)
@@ -40,10 +43,10 @@ int init_huffman_table(struct HuffmanEntry *ht, const uint8 *lengths, int length
         }
         next_code[lengths[n]] += 1;
 
-        for ( ; x < (1<<HUFF_MAX_LEN); x += (1<<lengths[n]))
+        for ( ; x < (1<<len); x += (1<<lengths[n]))
         {
-            ht[x].bits  = lengths[n];
-            ht[x].value = n;
+            ht->e[x].bits  = lengths[n];
+            ht->e[x].value = n;
         }
     }
     return 0;
@@ -76,13 +79,13 @@ int init_huffman_table(struct HuffmanEntry *ht, const uint8 *lengths, int length
          SHIFT(I->param); \
     } while(0)
 
-#define DECODE(ht,e) \
+#define DECODE(ht,v) \
     do { struct HuffmanEntry *he; \
-         while ((he = (ht) + (I->word&HUFF_MASK))->bits > I->word_size) \
+         while ((he = (ht).e + (I->word&(ht).mask))->bits > I->word_size) \
             RESERVE(he->bits); \
         CHECK(he->bits != 0); \
         SHIFT(he->bits); \
-        e = he->value; \
+        v = he->value; \
     } while(0)
 
 #define OUTPUT(c) \
@@ -157,8 +160,8 @@ default:
                     5,5,5,5,5,5,5,5,  5,5,5,5,5,5,5,5,
                     5,5,5,5,5,5,5,5,  5,5,5,5,5,5,5,5 };
 
-                CHECK(init_huffman_table(I->ht1, fixed_litlen_lengths, 288) == 0);
-                CHECK(init_huffman_table(I->ht2, fixed_dist_lengths, 32) == 0);
+                CHECK(init_huffman_table(&I->ht1, fixed_litlen_lengths, 288) == 0);
+                CHECK(init_huffman_table(&I->ht2, fixed_dist_lengths, 32) == 0);
             }
             else
             /* btype == 2 */
@@ -180,7 +183,7 @@ default:
                 memset(I->code_lengths, 0, sizeof(I->code_lengths));
                 for (I->n = 0; I->n < I->hclen; ++I->n)
                     GRAB(3, I->code_lengths[code_list[I->n]]);
-                CHECK(init_huffman_table(I->ht1, I->code_lengths, 19) == 0);
+                CHECK(init_huffman_table(&I->ht1, I->code_lengths, 19) == 0);
 
                 /* Read lit/len lengths and dist lengths */
                 I->last = 0;
@@ -237,8 +240,8 @@ default:
                     }
                 }
 
-                CHECK(init_huffman_table(I->ht1, I->litlen_lengths, I->hlit ) == 0);
-                CHECK(init_huffman_table(I->ht2, I->dist_lengths,   I->hdist) == 0);
+                CHECK(init_huffman_table(&I->ht1, I->litlen_lengths, I->hlit ) == 0);
+                CHECK(init_huffman_table(&I->ht2, I->dist_lengths,   I->hdist) == 0);
             }
 
             for(;;) {
